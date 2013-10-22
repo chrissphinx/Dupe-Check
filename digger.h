@@ -1,3 +1,12 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *
+ *	This file is the recursive directory traversing function. It takes a
+ *	directory name for an argument and continues through it finding files and
+ *	reading their contents for the hashing function. If it ever encounters
+ *	a duplicate, a symlink is created in the /dups directory.
+ *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #ifndef DIGGER_H
 #define DIGGER_H
 #include <dirent.h>
@@ -9,18 +18,14 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-void dig(const char * dir_name)
+void Dig(const char *dir)
 {
-	DIR * d;
-
-	/* Open the directory specified by "dir_name". */
-
-	d = opendir (dir_name);
+	DIR *d = opendir(dir);
 
 	/* Check it was opened. */
 	if (! d) {
 		fprintf (stderr, "Cannot open directory '%s': %s\n",
-				 dir_name, strerror(errno));
+				 dir, strerror(errno));
 		// exit (EXIT_FAILURE);
 	}
 	while (1) {
@@ -39,7 +44,7 @@ void dig(const char * dir_name)
 		if(entry->d_type & DT_REG && strcmp(entry->d_name, ".DS_Store")) {
 			char opening[MAXPATHLEN];
 			char dups[MAXPATHLEN] = "/Users/chrissphinx/cs2240/224/assignment2/dups";
-			snprintf(opening, MAXPATHLEN, "%s/%s", dir_name, entry->d_name);
+			snprintf(opening, MAXPATHLEN, "%s/%s", dir, entry->d_name);
 			snprintf(dups, MAXPATHLEN, "%s/%s", dups, entry->d_name);
 			int fd = open(opening, O_RDONLY, S_IROTH);
 			size_t size = lseek(fd, 0, SEEK_END);
@@ -82,21 +87,21 @@ void dig(const char * dir_name)
 				char path[MAXPATHLEN];
  
 				path_length = snprintf (path, MAXPATHLEN,
-										"%s/%s", dir_name, entry->d_name);
+										"%s/%s", dir, entry->d_name);
 				printf ("%s\n", path);
 				if (path_length >= MAXPATHLEN) {
 					fprintf (stderr, "Path length has got too long.\n");
 					// exit (EXIT_FAILURE);
 				}
 				/* Recursively call "dig" with the new path. */
-				dig (path);
+				Dig (path);
 			}
 		}
 	}
 	/* After going through all the entries, close the directory. */
 	if (closedir (d)) {
 		fprintf (stderr, "Could not close '%s': %s\n",
-				 dir_name, strerror(errno));
+				 dir, strerror(errno));
 		// exit (EXIT_FAILURE);
 	}
 

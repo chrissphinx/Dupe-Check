@@ -1,8 +1,8 @@
 dupchk: dupchk.c digger.h hasher.h
-	clang -O0 -w dupchk.c -o dupchk -lcrypto -ggdb
+	clang -O0 -w dupchk.c -o dupchk -lcrypto -ggdb; ./setup.sh
 
 exec: clean dupchk 
-	./setup.sh; ./dupchk test_dir
+	./dupchk test_dir
 
 memo: clean dupchk 
 	valgrind --track-origins=yes ./dupchk test_dir
