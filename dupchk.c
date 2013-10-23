@@ -15,11 +15,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+// GLOBALS ___________________________________________________________________
+char dups[MAXPATHLEN];										// Oops
+
 // MAIN ______________________________________________________________________
 int main(int argc, char **argv) {
 	// LOCALS
 	char	tdir[MAXPATHLEN];
 	struct	stat s;
+
+	// Keep the path of our dups directory
+	snprintf(dups, MAXPATHLEN, "%s/%s", getcwd(NULL, MAXPATHLEN), "dups");
 
 	if(argc > 1) {
 		// Append target directory to the current working directory
@@ -33,7 +39,7 @@ int main(int argc, char **argv) {
 		} else {
 			if(S_ISDIR(s.st_mode)) {
 				// Target is a directory, dig out the duplicates
-				Dig(tdir);
+				if(Dig(tdir)) { perror("ERROR"); }
 			} else {
 				// Target is not a directory
 				printf("ERROR: Target is not a directory");

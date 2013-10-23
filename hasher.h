@@ -15,14 +15,14 @@
 #include <string.h>
 
 // PROTOTYPES ________________________________________________________________
-int		Hash(char *);
+int		Hash(char*);
 void	AddDigest(unsigned char**, unsigned char*);
 void	Clean();
 int		CompareDigests(unsigned char**, unsigned char*);
 
 // GLOBALS ___________________________________________________________________
-int				entries = 0;
-unsigned char	**mds;										// Sorry!
+int				entries = 0;								// Sorry
+unsigned char	**mds;
 
 // FUNCTIONS _________________________________________________________________
 int Hash(char *w)
@@ -32,6 +32,7 @@ int Hash(char *w)
 
 	// Hash the string passed
 	unsigned char *tmp = SHA1((const unsigned char*)w, strlen(w), NULL);
+
 	// If there are no entries yet, simply add digest to the array ...
 	if(!entries) {
 		AddDigest(mds, tmp);
@@ -54,6 +55,7 @@ void AddDigest(unsigned char **mds, unsigned char* md)
 	// Copy the new digest into the array
 	mds[entries] = calloc(1, SHA_DIGEST_LENGTH);
 	memcpy(mds[entries], md, SHA_DIGEST_LENGTH);
+
 	// Increment the entries counter
 	entries++;
 }
@@ -63,8 +65,7 @@ void CleanUp()
 	// Free all memory allocated
 	for (int l = 0; l < entries; l++) {
 	    free(mds[l]);
-	}
-	free(mds);
+	} free(mds);
 }
 
 int CompareDigests(unsigned char **mds, unsigned char* md)

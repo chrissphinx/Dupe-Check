@@ -18,93 +18,94 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-void Dig(const char *dir)
+// PROTOTYPES ________________________________________________________________
+int MakeLink(char*, char*);
+
+// GLOBALS ___________________________________________________________________
+char dups[MAXPATHLEN];
+
+// FUNCTIONS _________________________________________________________________
+int Dig(const char *dir)
 {
-	DIR *d = opendir(dir);
-
-	/* Check it was opened. */
-	if (! d) {
-		fprintf (stderr, "Cannot open directory '%s': %s\n",
-				 dir, strerror(errno));
-		// exit (EXIT_FAILURE);
+	// Open directory path passed to function
+	DIR *d;
+	struct dirent *entry;
+	if (!(d = opendir(dir))) {
+		return errno;
 	}
-	while (1) {
-		struct dirent * entry;
-		// const char * d_name;
 
-		/* "Readdir" gets subsequent entries from "d". */
-		entry = readdir (d);
-		if (! entry) {
-			/* There are no more entries in this directory, so break
-			   out of the while loop. */
-			break;
-		}
-		// entry->d_name = entry->entry->d_name;
-		/* Print the name of the file and directory. */
+	// Recursively loop until there are no more entries
+	while(entry = readdir(d)) {
+		// Screen out directories and OS X .DS_Store files
 		if(entry->d_type & DT_REG && strcmp(entry->d_name, ".DS_Store")) {
-			char opening[MAXPATHLEN];
-			char dups[MAXPATHLEN] = "/Users/chrissphinx/cs2240/224/assignment2/dups";
-			snprintf(opening, MAXPATHLEN, "%s/%s", dir, entry->d_name);
-			snprintf(dups, MAXPATHLEN, "%s/%s", dups, entry->d_name);
-			int fd = open(opening, O_RDONLY, S_IROTH);
+			// Create path to the file
+			char filepath[MAXPATHLEN];
+			snprintf(filepath, MAXPATHLEN, "%s/%s", dir, entry->d_name);
+
+			// Open the file as read-only and get it's size
+			int fd = open(filepath, O_RDONLY);
 			size_t size = lseek(fd, 0, SEEK_END);
+
+			// Create a buffer of that size, move file pointer to start
 			char *buf = calloc(1, size + 1);
 			lseek(fd, 0, SEEK_SET);
-			int bytes = read(fd, buf, size);
-			if(bytes < 0) perror("ERROR");
-			printf("READ %d BYTES FROM FILE %s CONTENTS: %s", bytes, entry->d_name, buf);
-			int result = Hash(buf);
-			if (!result)
-			{
-				// DUPLICATE
-				printf(">> MAKING SYMLINK\n");
-				if(symlink(opening, dups) < 0) {
-					if(errno == 17) {
-						int i = 1;
-						char duppath[MAXPATHLEN] = { 0 };
-						strncpy(duppath, dups, MAXPATHLEN);
-						do {
-							snprintf(duppath, MAXPATHLEN, "%s%d", dups, i++);
-						} while(symlink(opening, duppath) < 0);
-					} else {
-						perror("ERROR");
-					}
+
+			// Read the file contents into buf
+			if(read(fd, buf, size) < 0) perror("ERROR");
+
+			// Hash the file contents
+			if (!(Hash(buf))) {
+				// Create a symlink to the file
+				if(MakeLink(filepath, entry->d_name)) {
+					return errno;
 				}
-			} else {
-				printf(">> NO SYMLINK MADE\n");
 			}
 		}
 
-		/* See if "entry" is a subdirectory of "d". */
-
+		// Otherwise check if it is a subdirectory
 		if (entry->d_type & DT_DIR) {
-
-			/* Check that the directory is not "d" or d's parent. */
-			
-			if (strcmp (entry->d_name, "..") != 0 &&
-				strcmp (entry->d_name, ".") != 0) {
-				int path_length;
+			// Screen out itself and parent directory to avoid infinite loops
+			if (strcmp(entry->d_name, "..") && strcmp(entry->d_name, ".")) {
+				// Assure we haven't exceeded MAXPATHLEN
 				char path[MAXPATHLEN];
- 
-				path_length = snprintf (path, MAXPATHLEN,
-										"%s/%s", dir, entry->d_name);
-				printf ("%s\n", path);
-				if (path_length >= MAXPATHLEN) {
-					fprintf (stderr, "Path length has got too long.\n");
-					// exit (EXIT_FAILURE);
+				if (!(snprintf(path, MAXPATHLEN, "%s/%s", dir, entry->d_name))){
+					return errno;
 				}
-				/* Recursively call "dig" with the new path. */
-				Dig (path);
+				// Call again on this subdirectory
+				Dig(path);
 			}
 		}
 	}
-	/* After going through all the entries, close the directory. */
-	if (closedir (d)) {
-		fprintf (stderr, "Could not close '%s': %s\n",
-				 dir, strerror(errno));
-		// exit (EXIT_FAILURE);
+
+	// All entries were checked, close the directory
+	if(closedir(d)) {
+		return errno;
 	}
 
+	return 0;
+}
+
+
+int MakeLink(char *filepath, char *name)
+{
+	// Get the path for the link we are creating
+	char duppath[MAXPATHLEN] = { 0 };
+	snprintf(duppath, MAXPATHLEN, "%s/%s", dups, name);
+
+	// Attempt to create a symlink
+	if(symlink(filepath, duppath) < 0) {
+		// If it failed because of a duplicate name ...
+		if(errno == 17) {
+			// Angrily try again and again with a number appended to the name
+			int i = 1;
+			do {
+				snprintf(duppath, MAXPATHLEN, "%s/%s%d", dups, name, i++);
+			} while(symlink(filepath, duppath) < 0);
+		} else {
+			// Relay error if duplicate wasn't the problem
+			return errno;
+		}
+	} return 0;
 }
 
 #endif

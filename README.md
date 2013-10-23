@@ -1,3 +1,14 @@
+# Completed #
+
+* Didn't end up using the correct prototype
+* Squeaky cleaned code
+* Still using globals like an asshole
+
+
+Original assignment README.md below ...
+
+-----------------
+
 # Assignment II #
 
 For this assignment, you will be performing a recursive directory traversal. While walking the file tree, you will be looking for duplicate files and creating symbolic links to them.
